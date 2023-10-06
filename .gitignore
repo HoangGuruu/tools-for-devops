@@ -2,6 +2,6 @@
 .terraform/
 *.tfstate
 *.tfstate.backup
-
+*.lock.hcl
 # Tệp khóa để tránh tiết lộ thông tin nhạy cảm
 *.tfvars
