@@ -1,0 +1,7 @@
+# Tệp và thư mục Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Tệp khóa để tránh tiết lộ thông tin nhạy cảm
+*.tfvars
