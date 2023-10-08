@@ -12,22 +12,6 @@ kubectl config view
 
 # lấy mật khẩu cho người dùng e2e
 kubectl config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'
-
-kubectl config view -o jsonpath='{.users[].name}'    # hiển thị người dùng đầu tiên  
-kubectl config view -o jsonpath='{.users[*].name}'   # lấy danh sách người dùng  
-kubectl config get-contexts                          # hiển thị danh sách các ngữ cảnh 
-kubectl config current-context                       # hiển thị ngữ cảnh hiện tại
-kubectl config use-context my-cluster-name           # thiết lập ngữ cảnh mặc định cho my-cluster-name
-
-# thêm một cụm mới vào kubeconf hỗ trợ xác thực cơ bản
-kubectl config set-credentials kubeuser/foo.kubernetes.com --username=kubeuser --password=kubepassword
-
-# lưu vĩnh viễn namespace cho tất cả các lệnh kubectl tiếp theo trong ngữ cảnh đó
-kubectl config set-context --current --namespace=ggckad-s2
-
-# thiết lập ngữ cảnh sử dụng tên người dùng và namespace cụ thể
-kubectl config set-context gce --user=cluster-admin --namespace=foo \
-  && kubectl config use-context gce
  
 kubectl config unset users.foo                       # xóa người dùng foo
 ```
@@ -41,44 +25,6 @@ kubectl apply -f https://git.io/vPieo          # tạo tài nguyên từ url
 kubectl create deployment nginx --image=nginx  # tạo một deployment nginx
 kubectl explain pods,svc                       # lấy thông tin pod và service manifest
 
-# Tạo nhiều đối tượng YAML từ stdin
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Pod
-metadata:
-  name: busybox-sleep
-spec:
-  containers:
-  - name: busybox
-    image: busybox
-    args:
-    - sleep
-    - "1000000"
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: busybox-sleep-less
-spec:
-  containers:
-  - name: busybox
-    image: busybox
-    args:
-    - sleep
-    - "1000"
-EOF
-
-# Tạo một secret với một số keys
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mysecret
-type: Opaque
-data:
-  password: $(echo -n "s33msi4" | base64 -w0)
-  username: $(echo -n "jane" | base64 -w0)
-EOF
 ```
 
 ## Xem, tìm các tài nguyên
@@ -97,95 +43,6 @@ kubectl get pod my-pod -o yaml --export       # Lấy thông tin của một pod
 kubectl describe nodes my-node
 kubectl describe pods my-pod
 
-# Liệt kê các services được sắp xếp theo tên
-kubectl get services --sort-by=.metadata.name
-
-# Liệt kê các pods được sắp xếp theo số lần khởi động lại
-kubectl get pods --sort-by='.status.containerStatuses[0].restartCount'
-
-# Liệt kê các pods được sắp xếp theo dung lượng trong namespace có tên là test
-
-kubectl get pods -n test --sort-by='.spec.capacity.storage'
-
-# Lấy thông tin phiên bản của tất cả các pods có nhãn app=cassandra
-kubectl get pods --selector=app=cassandra -o \
-  jsonpath='{.items[*].metadata.labels.version}'
-
-# Liệt kê tất cả các worker nodes (sử dụng một selector để loại trừ kết quả có một nhãn
-# có tên 'node-role.kubernetes.io/master'  
-kubectl get node --selector='!node-role.kubernetes.io/master'
-
-# Liệt kê tất cả các pods đang chạy trong namespace
-kubectl get pods --field-selector=status.phase=Running
-
-# Liệt kê tất cả các ExternalIPs của tất cả các nodes
-kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="ExternalIP")].address}'
-
-# Liệt kê tên của các pods thuộc về một RC nhất định
-# Lệnh "jq" hữu ích cho các chuyển đổi quá mức phức tạp cho jsonpath, xem thêm tại https://stedolan.github.io/jq/
-sel=${$(kubectl get rc my-rc --output=json | jq -j '.spec.selector | to_entries | .[] | "\(.key)=\(.value),"')%?}
-echo $(kubectl get pods --selector=$sel --output=jsonpath={.items..metadata.name})
-
-# Hiển thị nhãn của tất cả các pods (hoặc các đối tượng Kubernetes khác hỗ trợ gán nhãn)
-kubectl get pods --show-labels
-
-# Kiểm tra xem nodes nào đã sẵn sàng
-JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}' \
- && kubectl get nodes -o jsonpath="$JSONPATH" | grep "Ready=True"
-
-# Liệt kê tất cả cá Secrets hiện đang sử dụng bởi một pod
-kubectl get pods -o json | jq '.items[].spec.containers[].env[]?.valueFrom.secretKeyRef.name' | grep -v null | sort | uniq
-
-# Liệt kê tất cả các sự kiện được sắp xếp theo thời gian
-kubectl get events --sort-by=.metadata.creationTimestamp
-```
-## Cập nhật các tài nguyên
-```
-kubectl set image deployment/frontend www=image:v2               # Cập nhận container "www" của deployment "frontend", cập nhật image
-kubectl rollout history deployment/frontend                      # Kiểm tra lịch sử deployment bao gồm các sửa đổi
-kubectl rollout undo deployment/frontend                         # Quay trở lại deployment trước đó
-kubectl rollout undo deployment/frontend --to-revision=2         # Quay trở lại một phiên bản cụ thể
-kubectl rollout status -w deployment/frontend                    # Xem trạng thái cập nhật của deployment "frontend" cho đến khi hoàn thành
-
-
-# không còn được sử dụng kể từ phiên bản 1.11
-kubectl rolling-update frontend-v1 -f frontend-v2.json           # (không dùng nữa) Cập nhật pods của frontend-v1
-kubectl rolling-update frontend-v1 frontend-v2 --image=image:v2  # (không dùng nữa) Đổi tên tài nguyên và cập nhật image 
-kubectl rolling-update frontend --image=image:v2                 # (không dùng nữa) Cập nhật image của pod của frontend
-kubectl rolling-update frontend-v1 frontend-v2 --rollback        # (không dùng nữa) Hủy bỏ tiến trình cập nhật hiện tại
-
-cat pod.json | kubectl replace -f -                              # Thay thế một pod dựa trên JSON được truyền vào std
-
-# Buộc thay thế, xóa và sau đó tạo lại tài nguyên, sẽ gây ra sự cố ngưng services
-kubectl replace --force -f ./pod.json
-
-# Tạo một services cho nginx, phục vụ trên công 80 và kết nối đến các container trên cổng 8000
-kubectl expose rc nginx --port=80 --target-port=8000
-
-# Cập nhật phiên bản image của một container đơn lẻ lên v4 
-kubectl get pod mypod -o yaml | sed 's/\(image: myimage\):.*$/\1:v4/' | kubectl replace -f -
-
-kubectl label pods my-pod new-label=awesome                      # Thêm một nhãn
-kubectl annotate pods my-pod icon-url=http://goo.gl/XXBTWq       # Thêm một chú thích
-kubectl autoscale deployment foo --min=2 --max=10                # Tự động scale deployment "foo"
-```
-
-## Vá các tài nguyên
-```
-# Cập nhật một phần một node
-kubectl patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'
-
-# Cập nhật image của container; spec.containers[*].name là bắt buộc vì đó là khóa hợp nhất
-kubectl patch pod valid-pod -p '{"spec":{"containers":[{"name":"kubernetes-serve-hostname","image":"new image"}]}}'
-
-# Cập nhật image của container sử dụng một bản vá json với các mảng vị trí
-kubectl patch pod valid-pod --type='json' -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":"new image"}]'
-
-# Vô hiệu hóa một deployment livenessProbe sử dụng một bản vá json với các mảng vị trí
-kubectl patch deployment valid-deployment  --type json   -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}]'
-
-# Thêm một phần tử mới vào một mảng vị trí
-kubectl patch sa default --type='json' -p='[{"op": "add", "path": "/secrets/1", "value": {"name": "whatever" } }]'
 ```
 
 ## Chỉnh sửa các tài nguyên
