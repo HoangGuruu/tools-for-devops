@@ -2,20 +2,6 @@
 
 # 1. kubectl Cheat Sheet
 Link : https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/ 
-## Ngữ cảnh và cấu hình kubectl
-```kubectl config view # Hiển thị các thiết lập kubeconfig đã được merged
-
-# sử dụng nhiều tệp kubeconfig cùng một lúc và xem cấu hình hợp nhất
-KUBECONFIG=~/.kube/config:~/.kube/kubconfig2 
-
-kubectl config view
-
-# lấy mật khẩu cho người dùng e2e
-kubectl config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'
- 
-kubectl config unset users.foo                       # xóa người dùng foo
-```
-
 ## Tạo một đối tượng
 ```
 kubectl apply -f ./my-manifest.yaml            # tạo tài nguyên
@@ -24,11 +10,9 @@ kubectl apply -f ./dir                         # tạo tài nguyên từ tất c
 kubectl apply -f https://git.io/vPieo          # tạo tài nguyên từ url
 kubectl create deployment nginx --image=nginx  # tạo một deployment nginx
 kubectl explain pods,svc                       # lấy thông tin pod và service manifest
-
 ```
 
 ## Xem, tìm các tài nguyên
-
 ```
 # Lệnh get với một số đầu ra cơ bản
 kubectl get services                          # Liệt kê tất cả các services trong namespace
@@ -44,7 +28,6 @@ kubectl describe nodes my-node
 kubectl describe pods my-pod
 
 ```
-
 ## Chỉnh sửa các tài nguyên
 ```
 kubectl edit svc/docker-registry                      # Chỉnh sửa services có tên docker-registry
@@ -66,7 +49,6 @@ kubectl -n my-ns delete pod,svc --all                                     # Xóa
 # Xóa tất cả pods matching với pattern1 hoặc pattern2
 kubectl get pods  -n mynamespace --no-headers=true | awk '/pattern1|pattern2/{print $1}' | xargs  kubectl delete -n mynamespace pod
 ```
-
 ## Tương tác với các pods đang chạy
 ```
 kubectl logs my-pod                                 # kết xuất logs của pod (stdout)
@@ -91,14 +73,6 @@ kubectl exec my-pod -c my-container -- ls /         # Chạy lệnh trong pod (t
 kubectl top pod POD_NAME --containers               # Hiển thị số liệu của pod và container chạy trong nó
 ```
 ## Tương tác với các nodes và cụm
-```
-kubectl cordon my-node                                                # Đánh dấu my-node là không thể lập lịch
-kubectl drain my-node                                                 # Gỡ my-node ra khỏi cụm để chuẩn bị cho việc bảo trì
-kubectl uncordon my-node                                              # Đánh dấu my-node có thể lập lịch trở lại
-kubectl top node my-node                                              # Hiển thị số liệu của node
+```                              
 kubectl cluster-info                                                  # Hiển thị địa chỉ master và các services
-kubectl cluster-info dump                                             # Kết xuất trạng thái hiện tại của cụm ra ngoài stdout
-kubectl cluster-info dump --output-directory=/path/to/cluster-state   # Kết xuất trạng thái hiện tại của cụm vào /path/to/cluster-state
-
-kubectl taint nodes foo dedicated=special-user:NoSchedule
 ```
